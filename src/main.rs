@@ -1,11 +1,9 @@
-#[allow(unused_imports)]
+#[allow(unused_imports, dead_code, unused)]
 use std::net::UdpSocket;
 
-fn main() {
-    // You can use print statements as follows for debugging, they'll be visible when running tests.
-    println!("Logs from your program will appear here!");
+pub mod dns;
 
-    // TODO: Uncomment the code below to pass the first stage
+fn main() {
     let udp_socket = UdpSocket::bind("127.0.0.1:2053").expect("Failed to bind to address");
     let mut buf = [0; 512];
     //
@@ -13,9 +11,9 @@ fn main() {
         match udp_socket.recv_from(&mut buf) {
             Ok((size, source)) => {
                 println!("Received {} bytes from {}", size, source);
-                let response = [];
+                let response = dns::DnsHeader::new_reponse(0);
                 udp_socket
-                    .send_to(&response, source)
+                    .send_to(&response.to_bytes(), source)
                     .expect("Failed to send response");
             }
             Err(e) => {
