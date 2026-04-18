@@ -209,6 +209,7 @@ impl Message {
     pub fn from_request(buf: &mut [u8]) -> Self {
         let mut header = DnsHeader::from_bytes(buf);
         header.qr = true;
+        header.rcode = if header.rcode == 0 { 0 } else { 4 };
 
         Self {
             header: header,
