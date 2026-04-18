@@ -3,7 +3,7 @@ use std::net::UdpSocket;
 
 use bytes::buf;
 
-use crate::dns::{Message, Question};
+use crate::dns::{Answer, Message, Question};
 
 pub mod dns;
 
@@ -17,15 +17,25 @@ fn main() {
             Ok((size, source)) => {
                 println!("Received {} bytes from {}", size, source);
                 let mut response = [0; 512];
+
                 let mut msg = Message::new(1234);
                 msg.add_question(Question {
                     name: "codecrafters.io".to_string(),
                     q_type: 1 as u16,
                     q_class: 1 as u16,
                 });
+                msg.add_answer(Answer::new(
+                    "codecrafters.io".to_string(),
+                    1,
+                    1,
+                    60,
+                    4,
+                    "8.8.8.8".to_string(),
+                ));
 
                 msg.write_header(&mut response);
-                let _len = msg.write_questions(&mut response[12..]);
+                let len = msg.write_questions(&mut response[12..]);
+                let _len = msg.write_answers(&mut response[len..]);
 
                 udp_socket
                     .send_to(&response, source)

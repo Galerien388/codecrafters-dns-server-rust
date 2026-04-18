@@ -87,24 +87,71 @@ impl Question {
         }
     }
 
-    pub fn read_question(&self, buf: &mut [u8]) -> usize {
-        let names = self.name.split(".");
-        let mut start = 0;
-        for name in names {
-            let len_as_u8 = name.len() as u8;
-            buf[start] = len_as_u8;
-            start += 1;
-            for b in name.as_bytes() {
-                buf[start] = *b;
-                start += 1;
-            }
-        }
-        buf[start] = b'\0';
+    pub fn write_to(&self, buf: &mut [u8]) -> usize {
+        encode_name(buf, &self.name, self.q_type, self.q_class)
+    }
+}
+
+fn encode_name(buf: &mut [u8], name: &str, name_type: u16, name_class: u16) -> usize {
+    let names = name.split('.');
+    let mut start = 0;
+    for name in names {
+        let len_as_u8 = name.len() as u8;
+        buf[start] = len_as_u8;
         start += 1;
-        buf[start..start + 2].copy_from_slice(&self.q_type.to_be_bytes());
+        for b in name.as_bytes() {
+            buf[start] = *b;
+            start += 1;
+        }
+    }
+    buf[start] = b'\0';
+    start += 1;
+    buf[start..start + 2].copy_from_slice(&name_type.to_be_bytes());
+    start += 2;
+    buf[start..start + 2].copy_from_slice(&name_class.to_be_bytes());
+    start += 2;
+    start
+}
+
+pub struct Answer {
+    pub name: String,
+    pub a_type: u16,
+    pub a_class: u16,
+    pub ttl: u32,
+    pub length: u16,
+    pub data: u32,
+}
+
+impl Answer {
+    pub fn new(name: String, a_type: u16, a_class: u16, ttl: u32, length: u16, ip: String) -> Self {
+        Self {
+            name,
+            a_type,
+            a_class,
+            ttl,
+            data: Self::ip_to_u32(ip),
+            length,
+        }
+    }
+
+    fn ip_to_u32(ip: String) -> u32 {
+        let mut octets = [0u8; 4];
+        for (i, part) in ip.split('.').enumerate() {
+            octets[i] = part.parse::<u8>().expect("invalid IP");
+        }
+        u32::from_be_bytes(octets)
+    }
+
+    pub fn write_to(&self, buf: &mut [u8]) -> usize {
+        let mut start = 0;
+        let q_len = encode_name(buf, &self.name, self.a_type, self.a_class);
+        start += q_len;
+        buf[start..start + 4].copy_from_slice(&self.ttl.to_be_bytes());
+        start += 4;
+        buf[start..start + 2].copy_from_slice(&self.length.to_be_bytes());
         start += 2;
-        buf[start..start + 2].copy_from_slice(&self.q_class.to_be_bytes());
-        start += 2;
+        buf[start..start + 4].copy_from_slice(&self.data.to_be_bytes());
+        start += 4;
         start
     }
 }
@@ -112,6 +159,7 @@ impl Question {
 pub struct Message {
     header: DnsHeader,
     questions: Vec<Question>,
+    answers: Vec<Answer>,
 }
 
 impl Message {
@@ -119,12 +167,18 @@ impl Message {
         Self {
             header: DnsHeader::new_reponse(id),
             questions: Vec::new(),
+            answers: Vec::new(),
         }
     }
 
     pub fn add_question(&mut self, question: Question) {
         self.questions.push(question);
         self.header.qdcount = self.questions.len() as u16;
+    }
+
+    pub fn add_answer(&mut self, answer: Answer) {
+        self.answers.push(answer);
+        self.header.ancount = self.answers.len() as u16;
     }
 
     pub fn write_header(&self, buf: &mut [u8]) {
@@ -134,7 +188,16 @@ impl Message {
     pub fn write_questions(&self, buf: &mut [u8]) -> usize {
         let mut start = 0;
         for question in &self.questions {
-            let len = question.read_question(&mut buf[start..]);
+            let len = question.write_to(&mut buf[start..]);
+            start += len;
+        }
+        start
+    }
+
+    pub fn write_answers(&self, buf: &mut [u8]) -> usize {
+        let mut start = 0;
+        for answer in &self.answers {
+            let len = answer.write_to(&mut buf[start..]);
             start += len;
         }
         start
