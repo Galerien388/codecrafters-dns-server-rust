@@ -25,7 +25,7 @@ fn main() {
                 });
 
                 msg.write_header(&mut response);
-                msg.write_questions(&mut response);
+                let _len = msg.write_questions(&mut response[12..]);
 
                 udp_socket
                     .send_to(&response, source)
