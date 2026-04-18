@@ -107,6 +107,7 @@ impl DnsHeader {
     }
 }
 
+#[derive(Debug)]
 pub struct Question {
     pub name: String,
     pub q_type: u16,
