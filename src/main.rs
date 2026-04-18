@@ -21,13 +21,13 @@ fn main() {
 
                 let mut response = [0; 512];
 
-                let question = Question {
-                    name: "codecrafters.io".to_string(),
-                    q_type: 1 as u16,
-                    q_class: 1 as u16,
-                };
-
-                msg.add_question(question);
+                // let question = Question {
+                //     name: "codecrafters.io".to_string(),
+                //     q_type: 1 as u16,
+                //     q_class: 1 as u16,
+                // };
+                //
+                // msg.add_question(question);
                 msg.add_answer(Answer::new(
                     "codecrafters.io".to_string(),
                     1,

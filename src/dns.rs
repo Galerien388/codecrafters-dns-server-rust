@@ -45,7 +45,7 @@ impl DnsHeader {
         }
     }
 
-    pub fn from_bytes(buf: &mut [u8]) -> Self {
+    pub fn from_bytes(buf: &[u8]) -> Self {
         let flags = u16::from_be_bytes([buf[2], buf[3]]);
 
         let (qr, opcode, aa, tc, rd, ra, z, rcode) = Self::u16_to_flags(flags);
@@ -124,6 +124,36 @@ impl Question {
 
     pub fn write_to(&self, buf: &mut [u8]) -> usize {
         encode_name(buf, &self.name, self.q_type, self.q_class)
+    }
+
+    pub fn read_from(buf: &[u8]) -> (Question, usize) {
+        let mut start = 0;
+        let mut names = Vec::new();
+
+        loop {
+            let len = buf[start] as usize;
+            start += 1;
+            if len == 0 {
+                break;
+            }
+            let word = str::from_utf8(&buf[start..start + len]).expect("invalid word");
+            names.push(word);
+            start += len;
+        }
+
+        let q_type = u16::from_be_bytes([buf[start], buf[start + 1]]);
+        start += 2;
+        let q_class = u16::from_be_bytes([buf[start], buf[start + 1]]);
+        start += 2;
+
+        (
+            Question {
+                name: names.join(".").to_string(),
+                q_type,
+                q_class,
+            },
+            start,
+        )
     }
 }
 
@@ -217,6 +247,17 @@ impl Message {
             answers: Vec::new(),
         }
     }
+
+    pub fn read_questions(&mut self, buf: &mut [u8]) -> usize {
+        let mut start = 0;
+        for _ in 0..self.header.qdcount {
+            let (question, len) = Question::read_from(&mut buf[start..]);
+            start += len;
+            self.questions.push(question);
+        }
+        start
+    }
+
     pub fn add_question(&mut self, question: Question) {
         self.questions.push(question);
         self.header.qdcount = self.questions.len() as u16;
