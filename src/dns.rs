@@ -1,4 +1,5 @@
 use byteorder::{BigEndian, ByteOrder, WriteBytesExt};
+use bytes::buf;
 
 // [ ID        ] 2 bytes
 // [ FLAGS     ] 2 bytes
@@ -44,8 +45,42 @@ impl DnsHeader {
         }
     }
 
-    pub fn from_bytes() {
-        unimplemented!()
+    pub fn from_bytes(buf: &mut [u8]) -> Self {
+        let flags = u16::from_be_bytes([buf[2], buf[3]]);
+
+        let (qr, opcode, aa, tc, rd, ra, z, rcode) = Self::u16_to_flags(flags);
+
+        Self {
+            id: u16::from_be_bytes([buf[0], buf[1]]),
+            qdcount: u16::from_be_bytes([buf[4], buf[5]]),
+            ancount: u16::from_be_bytes([buf[6], buf[7]]),
+            nscount: u16::from_be_bytes([buf[8], buf[9]]),
+            arcount: u16::from_be_bytes([buf[10], buf[11]]),
+            qr,
+            opcode,
+            aa,
+            tc,
+            rd,
+            ra,
+            z,
+            rcode,
+        }
+    }
+
+    pub fn u16_to_flags(flags: u16) -> (bool, u8, bool, bool, bool, bool, u8, u8) {
+        const OPCODE_MASK: u16 = 0b1111;
+        const Z_MASK: u16 = 0b111;
+        const RCODE_MASK: u16 = 0b1111;
+        (
+            !(flags >> 15) & 1 == 1,
+            ((flags >> 11) & OPCODE_MASK) as u8,
+            (flags >> 10) & 1 == 1,
+            (flags >> 9) & 1 == 1,
+            (flags >> 8) & 1 == 1,
+            (flags >> 7) & 1 == 1,
+            ((flags >> 4) & Z_MASK) as u8,
+            ((flags) & RCODE_MASK) as u8,
+        )
     }
 
     pub fn flags_as_u16(&self) -> u16 {
@@ -171,6 +206,13 @@ impl Message {
         }
     }
 
+    pub fn from_request(buf: &mut [u8]) -> Self {
+        Self {
+            header: DnsHeader::from_bytes(buf),
+            questions: Vec::new(),
+            answers: Vec::new(),
+        }
+    }
     pub fn add_question(&mut self, question: Question) {
         self.questions.push(question);
         self.header.qdcount = self.questions.len() as u16;
@@ -203,11 +245,3 @@ impl Message {
         start
     }
 }
-
-// pub struct DnsMessage {
-//     header: DnsHeader,
-//     questions: Vec<Question>,
-//     answers: Vec<Record>,
-//     authorities: Vec<Record>,
-//     additionals: Vec<Record>,
-// }

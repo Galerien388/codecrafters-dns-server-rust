@@ -16,14 +16,18 @@ fn main() {
         match udp_socket.recv_from(&mut buf) {
             Ok((size, source)) => {
                 println!("Received {} bytes from {}", size, source);
+
+                let mut msg = Message::from_request(&mut buf);
+
                 let mut response = [0; 512];
 
-                let mut msg = Message::new(1234);
-                msg.add_question(Question {
+                let question = Question {
                     name: "codecrafters.io".to_string(),
                     q_type: 1 as u16,
                     q_class: 1 as u16,
-                });
+                };
+
+                msg.add_question(question);
                 msg.add_answer(Answer::new(
                     "codecrafters.io".to_string(),
                     1,
@@ -35,11 +39,11 @@ fn main() {
 
                 msg.write_header(&mut response);
                 let mut len = 12;
-                len = msg.write_questions(&mut response[len..]) + len;
-                let _len = msg.write_answers(&mut response[len..]) + len;
+                len += msg.write_questions(&mut response[len..]);
+                len += msg.write_answers(&mut response[len..]);
 
                 udp_socket
-                    .send_to(&response, source)
+                    .send_to(&response[..len], source)
                     .expect("Failed to send response");
             }
             Err(e) => {
