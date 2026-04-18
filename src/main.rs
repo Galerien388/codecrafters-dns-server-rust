@@ -28,7 +28,7 @@ fn main() {
                 // };
                 //
                 // msg.add_question(question);
-                let _len = msg.read_questions(&mut response[12..]);
+                let _len = msg.read_questions(&mut buf[12..]);
                 msg.add_answer(Answer::new(
                     "codecrafters.io".to_string(),
                     1,
