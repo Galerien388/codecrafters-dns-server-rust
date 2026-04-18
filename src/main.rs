@@ -29,15 +29,15 @@ fn main() {
                 //
                 // msg.add_question(question);
                 let _len = msg.read_questions(&mut buf[12..]);
-                msg.add_answer(Answer::new(
-                    "codecrafters.io".to_string(),
-                    1,
-                    1,
-                    60,
-                    4,
-                    "8.8.8.8".to_string(),
-                ));
-
+                // msg.add_answer(Answer::new(
+                //     "codecrafters.io".to_string(),
+                //     1,
+                //     1,
+                //     60,
+                //     4,
+                //     "8.8.8.8".to_string(),
+                // ));
+                //
                 msg.write_header(&mut response);
                 let mut len = 12;
                 len += msg.write_questions(&mut response[len..]);

@@ -261,13 +261,22 @@ impl Message {
     }
 
     pub fn add_question(&mut self, question: Question) {
+        let answer = Answer::new(
+            question.name.clone(),
+            question.q_type,
+            question.q_class,
+            60,
+            4,
+            "8.8.8.8".to_string(),
+        );
         self.questions.push(question);
+        self.answers.push(answer);
+        self.header.ancount = self.answers.len() as u16;
         self.header.qdcount = self.questions.len() as u16;
     }
 
     pub fn add_answer(&mut self, answer: Answer) {
         self.answers.push(answer);
-        self.header.ancount = self.answers.len() as u16;
     }
 
     pub fn write_header(&self, buf: &mut [u8]) {
