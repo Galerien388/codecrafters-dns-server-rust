@@ -255,7 +255,7 @@ impl Message {
             let (question, len) = Question::read_from(&mut buf[start..]);
             println!("{:?}", question);
             start += len;
-            self.questions.push(question);
+            self.add_question(question);
         }
         start
     }
@@ -271,6 +271,7 @@ impl Message {
         );
         self.questions.push(question);
         self.answers.push(answer);
+
         self.header.ancount = self.answers.len() as u16;
         self.header.qdcount = self.questions.len() as u16;
     }
