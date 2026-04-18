@@ -72,7 +72,7 @@ impl DnsHeader {
         const Z_MASK: u16 = 0b111;
         const RCODE_MASK: u16 = 0b1111;
         (
-            !(flags >> 15) & 1 == 1,
+            (flags >> 15) & 1 == 1,
             ((flags >> 11) & OPCODE_MASK) as u8,
             (flags >> 10) & 1 == 1,
             (flags >> 9) & 1 == 1,
@@ -209,7 +209,6 @@ impl Message {
     pub fn from_request(buf: &mut [u8]) -> Self {
         let mut header = DnsHeader::from_bytes(buf);
         header.qr = true;
-        header.opcode = if header.opcode == 0 { 0 } else { 4 };
 
         Self {
             header: header,
