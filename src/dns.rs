@@ -252,6 +252,7 @@ impl Message {
         let mut start = 0;
         for _ in 0..self.header.qdcount {
             let (question, len) = Question::read_from(&mut buf[start..]);
+            println!("{:?}", question);
             start += len;
             self.questions.push(question);
         }
