@@ -207,8 +207,12 @@ impl Message {
     }
 
     pub fn from_request(buf: &mut [u8]) -> Self {
+        let mut header = DnsHeader::from_bytes(buf);
+        header.qr = true;
+        header.opcode = if header.opcode == 0 { 0 } else { 4 };
+
         Self {
-            header: DnsHeader::from_bytes(buf),
+            header: header,
             questions: Vec::new(),
             answers: Vec::new(),
         }
