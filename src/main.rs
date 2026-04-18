@@ -34,8 +34,9 @@ fn main() {
                 ));
 
                 msg.write_header(&mut response);
-                let len = msg.write_questions(&mut response[12..]);
-                let _len = msg.write_answers(&mut response[len..]);
+                let mut len = 12;
+                len = msg.write_questions(&mut response[len..]) + len;
+                let _len = msg.write_answers(&mut response[len..]) + len;
 
                 udp_socket
                     .send_to(&response, source)
