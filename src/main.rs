@@ -58,6 +58,7 @@ fn query_msg(message: Message, resolver_addr: &str) -> (Message, usize) {
     for question in message.questions {
         println!("Send msg to resolver with question: {:?}", question);
         let mut msg = Message::new(message.header.id);
+        msg.set_request();
         msg.add_question(question);
         let mut req = [0; 512];
         let len = write_questions(msg, &mut req);
