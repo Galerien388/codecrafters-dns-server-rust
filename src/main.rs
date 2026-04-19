@@ -73,6 +73,7 @@ fn query_msg(message: Message, resolver_addr: &str, udp_socket: &UdpSocket) -> (
     let mut msg_response = Message::new(message.header.id);
 
     for question in message.questions {
+        println!("Send msg to resolver with question: {:?}", question);
         let mut msg = Message::new(message.header.id);
         msg.add_question(question);
         let mut req = [0; 512];
