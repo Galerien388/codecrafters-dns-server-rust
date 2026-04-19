@@ -1,6 +1,6 @@
 use crate::{
     answer::Answer,
-    header::{self, DnsHeader, HEADER_LEN},
+    header::{DnsHeader, HEADER_LEN},
     question::Question,
 };
 

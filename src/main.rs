@@ -31,7 +31,7 @@ fn main() {
                     let mut response = [0; 512];
                     msg.header.flags.set_resp();
                     let mut len = msg.header_into_slice(&mut response[..FLAG_SIZE]);
-                    len += msg.questions_into_slice(&mut response[len..size]);
+                    len += msg.questions_into_slice(&mut response[len..]);
 
                     udp_socket
                         .send_to(&response[..len], source)
@@ -77,11 +77,11 @@ fn query_msg(message: Message, resolver_addr: &str) -> (Message, usize) {
         msg_received.answers_from_slice(&resp_buf[len..size]);
 
         for q in msg_received.questions {
-            msg_response.questions.push(q);
+            msg_response.add_question(q);
         }
 
         for a in msg_received.answers {
-            msg_response.answers.push(a);
+            msg_response.add_answer(a);
         }
 
         start += len;
@@ -93,5 +93,6 @@ fn query_msg(message: Message, resolver_addr: &str) -> (Message, usize) {
 fn write_questions(message: Message, buf: &mut [u8]) -> usize {
     let mut start = message.header_into_slice(&mut buf[..HEADER_LEN]);
     start += message.questions_into_slice(&mut buf[start..]);
+    start += message.answers_into_slice(&mut buf[start..]);
     start
 }
