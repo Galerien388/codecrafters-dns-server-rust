@@ -29,7 +29,7 @@ fn main() {
                 let (mut resp_msg, _size) = match resolver_addr {
                     Some(ref resolver) => {
                         println!("resolver is set");
-                        query_msg(req_msg, resolver.as_str(), &udp_socket)
+                        query_msg(req_msg, resolver.as_str())
                     }
                     None => {
                         println!("resolver is not set");
@@ -67,7 +67,7 @@ fn main() {
     }
 }
 
-fn query_msg(message: Message, resolver_addr: &str, udp_socket: &UdpSocket) -> (Message, usize) {
+fn query_msg(message: Message, resolver_addr: &str) -> (Message, usize) {
     let mut start = 0;
 
     let mut msg_response = Message::new(message.header.id);
@@ -79,11 +79,13 @@ fn query_msg(message: Message, resolver_addr: &str, udp_socket: &UdpSocket) -> (
         let mut req = [0; 512];
         let len = write_questions(msg, &mut req);
 
+        let udp_socket = UdpSocket::bind("127.0.0.1:2055").expect("Failed to bind to address");
         udp_socket
             .send_to(&req[..len], resolver_addr)
             .expect("Failed to send req to resolver");
 
         let mut resp_buf = [0; 512];
+
         let (size, _addr) = udp_socket
             .recv_from(&mut resp_buf)
             .expect("Failed to receive from resolver");
