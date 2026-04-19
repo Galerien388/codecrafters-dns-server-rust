@@ -2,7 +2,7 @@ use std::env;
 #[allow(unused_imports, dead_code, unused)]
 use std::net::UdpSocket;
 
-use crate::{answer::Answer, header::HEADER_LEN, message::Message};
+use crate::{header::HEADER_LEN, message::Message};
 
 pub mod answer;
 pub mod field;
@@ -60,12 +60,12 @@ fn query_msg(message: Message, resolver_addr: &str) -> (Message, usize) {
         let mut msg = Message::new(message.header.id);
         msg.set_request();
         msg.add_question(question);
-        let mut req = [0; 512];
-        let len = write_questions(msg, &mut req);
+        let mut req_buf = [0; 512];
+        let len = write_questions(msg, &mut req_buf);
 
         let resolver_socket = UdpSocket::bind("0.0.0.0:0").expect("Failed to bind to address");
         resolver_socket
-            .send_to(&req[..len], resolver_addr)
+            .send_to(&req_buf[..len], resolver_addr)
             .expect("Failed to send req to resolver");
 
         let mut resp_buf = [0; 512];
