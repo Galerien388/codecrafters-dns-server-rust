@@ -27,8 +27,12 @@ fn main() {
                 req_msg.questions_from_slice(&buf[req_len..size]);
 
                 let (mut resp_msg, _size) = match resolver_addr {
-                    Some(ref resolver) => query_msg(req_msg, resolver.as_str(), &udp_socket),
+                    Some(ref resolver) => {
+                        println!("resolver is set");
+                        query_msg(req_msg, resolver.as_str(), &udp_socket)
+                    }
                     None => {
+                        println!("resolver is not set");
                         let mut m = Message::new(req_msg.header.id);
                         for q in req_msg.questions {
                             m.answers.push(Answer::new(
@@ -37,7 +41,7 @@ fn main() {
                                 q.field.f_class,
                                 60,
                                 4,
-                                "8.8.8.8".to_string(),
+                                q.field.name.clone(),
                             ));
                             m.questions.push(q);
                         }
