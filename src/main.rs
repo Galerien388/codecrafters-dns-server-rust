@@ -25,19 +25,20 @@ fn main() {
 
                 let _len = msg.read_questions(&mut buf[FLAG_SIZE..]);
 
-                let (mut resp_msg, _size) = match resolver_addr {
+                let (resp_msg, _size) = match resolver_addr {
                     Some(ref resolver) => query_msg(msg, resolver.as_str(), &udp_socket),
                     None => {
                         let mut m = Message::new(msg.header.id);
                         for q in msg.questions {
                             m.answers.push(Answer::new(
-                                q.name,
+                                q.name.clone(),
                                 q.q_type,
                                 q.q_class,
                                 60,
                                 4,
                                 "8.8.8.8".to_string(),
                             ));
+                            m.questions.push(q);
                         }
                         (m, 0)
                     }
