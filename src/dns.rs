@@ -10,7 +10,7 @@ use bytes::buf;
 
 #[derive(Debug, Default)]
 pub struct DnsHeader {
-    id: u16,
+    pub id: u16,
     //Query/Response Indicator
     qr: bool,
     opcode: u8,
@@ -128,34 +128,39 @@ impl Question {
     }
 
     pub fn read_from(buf: &[u8]) -> (Question, usize) {
-        let mut start = 0;
-        let mut names = Vec::new();
-
-        loop {
-            let len = buf[start] as usize;
-            start += 1;
-            if len == 0 {
-                break;
-            }
-            let word = str::from_utf8(&buf[start..start + len]).expect("invalid word");
-            names.push(word);
-            start += len;
-        }
-
-        let q_type = u16::from_be_bytes([buf[start], buf[start + 1]]);
-        start += 2;
-        let q_class = u16::from_be_bytes([buf[start], buf[start + 1]]);
-        start += 2;
-
+        let (name, q_type, q_class, start) = decode_name(buf);
         (
             Question {
-                name: names.join(".").to_string(),
+                name,
                 q_type,
                 q_class,
             },
             start,
         )
     }
+}
+
+fn decode_name(buf: &[u8]) -> (String, u16, u16, usize) {
+    let mut start = 0;
+    let mut names = Vec::new();
+
+    loop {
+        let len = buf[start] as usize;
+        start += 1;
+        if len == 0 {
+            break;
+        }
+        let word = str::from_utf8(&buf[start..start + len]).expect("invalid word");
+        names.push(word);
+        start += len;
+    }
+
+    let q_type = u16::from_be_bytes([buf[start], buf[start + 1]]);
+    start += 2;
+    let q_class = u16::from_be_bytes([buf[start], buf[start + 1]]);
+    start += 2;
+
+    (names.join(".").to_string(), q_type, q_class, start)
 }
 
 fn encode_name(buf: &mut [u8], name: &str, name_type: u16, name_class: u16) -> usize {
@@ -179,6 +184,7 @@ fn encode_name(buf: &mut [u8], name: &str, name_type: u16, name_class: u16) -> u
     start
 }
 
+#[derive(Debug)]
 pub struct Answer {
     pub name: String,
     pub a_type: u16,
@@ -198,6 +204,35 @@ impl Answer {
             data: Self::ip_to_u32(ip),
             length,
         }
+    }
+
+    pub fn read_from(buf: &[u8]) -> (Self, usize) {
+        let (name, a_type, a_class, mut start) = decode_name(buf);
+        let ttl = u32::from_be_bytes([buf[start], buf[start + 1], buf[start + 2], buf[start + 3]]);
+        start += 4;
+        let length = u16::from_be_bytes([buf[start], buf[start + 1]]);
+        start += 2;
+        let data = if a_type == 1 && length == 4 {
+            let d =
+                u32::from_be_bytes([buf[start], buf[start + 1], buf[start + 2], buf[start + 3]]);
+            start += 4;
+            d
+        } else {
+            // placeholder for now
+            0
+        };
+
+        (
+            Self {
+                name,
+                a_type,
+                a_class,
+                ttl,
+                length,
+                data,
+            },
+            start,
+        )
     }
 
     fn ip_to_u32(ip: String) -> u32 {
@@ -223,9 +258,9 @@ impl Answer {
 }
 
 pub struct Message {
-    header: DnsHeader,
-    questions: Vec<Question>,
-    answers: Vec<Answer>,
+    pub header: DnsHeader,
+    pub questions: Vec<Question>,
+    pub answers: Vec<Answer>,
 }
 
 impl Message {
@@ -237,7 +272,7 @@ impl Message {
         }
     }
 
-    pub fn from_request(buf: &mut [u8]) -> Self {
+    pub fn from_header_bytes(buf: &[u8]) -> Self {
         let mut header = DnsHeader::from_bytes(buf);
         header.qr = true;
         header.rcode = if header.opcode == 0 { 0 } else { 4 };
@@ -249,35 +284,36 @@ impl Message {
         }
     }
 
-    pub fn read_questions(&mut self, buf: &mut [u8]) -> usize {
+    pub fn read_questions(&mut self, buf: &[u8]) -> usize {
         let mut start = 0;
         for _ in 0..self.header.qdcount {
-            let (question, len) = Question::read_from(&mut buf[start..]);
-            println!("{:?}", question);
+            let (question, len) = Question::read_from(&buf[start..]);
+            println!("Question read: {:?}", question);
             start += len;
             self.add_question(question);
         }
         start
     }
 
-    pub fn add_question(&mut self, question: Question) {
-        let answer = Answer::new(
-            question.name.clone(),
-            question.q_type,
-            question.q_class,
-            60,
-            4,
-            "8.8.8.8".to_string(),
-        );
-        self.questions.push(question);
-        self.answers.push(answer);
+    pub fn read_answers(&mut self, buf: &[u8]) -> usize {
+        let mut start = 0;
+        for _ in 0..self.header.ancount {
+            let (answer, len) = Answer::read_from(&buf[start..]);
+            println!("Answer read: {:?}", answer);
+            start += len;
+            self.add_answer(answer);
+        }
+        start
+    }
 
-        self.header.ancount = self.answers.len() as u16;
+    pub fn add_question(&mut self, question: Question) {
+        self.questions.push(question);
         self.header.qdcount = self.questions.len() as u16;
     }
 
     pub fn add_answer(&mut self, answer: Answer) {
         self.answers.push(answer);
+        self.header.ancount = self.answers.len() as u16;
     }
 
     pub fn write_header(&self, buf: &mut [u8]) {
