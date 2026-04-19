@@ -6,7 +6,11 @@ use bytes::buf;
 
 use crate::dns::{Answer, Message, Question};
 
+pub mod answer;
 pub mod dns;
+pub mod field;
+pub mod header;
+pub mod question;
 
 const FLAG_SIZE: usize = 12;
 
