@@ -1,3 +1,5 @@
+use std::str;
+
 #[derive(Debug)]
 pub struct Field {
     pub name: String,

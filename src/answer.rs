@@ -22,6 +22,14 @@ impl Answer {
         }
     }
 
+    fn ip_to_u32(ip: String) -> u32 {
+        let mut octets = [0u8; 4];
+        for (i, part) in ip.split('.').enumerate() {
+            octets[i] = part.parse::<u8>().expect("invalid IP");
+        }
+        u32::from_be_bytes(octets)
+    }
+
     pub fn from_slice(buf: &[u8]) -> (Self, usize) {
         let (field, mut start) = Field::from_slice(buf);
         let ttl = u32::from_be_bytes([buf[start], buf[start + 1], buf[start + 2], buf[start + 3]]);
@@ -47,14 +55,6 @@ impl Answer {
             },
             start,
         )
-    }
-
-    fn ip_to_u32(ip: String) -> u32 {
-        let mut octets = [0u8; 4];
-        for (i, part) in ip.split('.').enumerate() {
-            octets[i] = part.parse::<u8>().expect("invalid IP");
-        }
-        u32::from_be_bytes(octets)
     }
 
     pub fn into_slice(&self, buf: &mut [u8]) -> usize {

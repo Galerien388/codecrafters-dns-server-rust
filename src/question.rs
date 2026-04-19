@@ -2,7 +2,7 @@ use crate::field::Field;
 
 #[derive(Debug)]
 pub struct Question {
-    field: Field,
+    pub field: Field,
 }
 
 impl Question {

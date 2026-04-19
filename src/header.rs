@@ -13,20 +13,20 @@ pub const HEADER_LEN: usize = 12;
 #[derive(Debug, Default)]
 pub struct Flags {
     //Query/Response Indicator
-    qr: bool,
-    opcode: u8,
+    pub qr: bool,
+    pub opcode: u8,
     //Authoritative Answer
-    aa: bool,
+    pub aa: bool,
     // Truncation
-    tc: bool,
+    pub tc: bool,
     // Recursion desired
-    rd: bool,
+    pub rd: bool,
     // Recursion available
-    ra: bool,
+    pub ra: bool,
     // resevered
-    z: u8,
+    pub z: u8,
     // Response code
-    rcode: u8,
+    pub rcode: u8,
 }
 
 impl Flags {
@@ -75,15 +75,15 @@ impl From<&Flags> for u16 {
 #[derive(Debug, Default)]
 pub struct DnsHeader {
     pub id: u16,
-    flags: Flags,
+    pub flags: Flags,
     // Question count
-    qdcount: u16,
+    pub qdcount: u16,
     // Answer record count
-    ancount: u16,
+    pub ancount: u16,
     // Authoritie record count
-    nscount: u16,
+    pub nscount: u16,
     // Additional record count
-    arcount: u16,
+    pub arcount: u16,
 }
 
 impl DnsHeader {
@@ -94,7 +94,7 @@ impl DnsHeader {
         }
     }
 
-    pub fn write_into_bytes(&self, buf: &mut [u8]) -> usize {
+    pub fn into_bytes(&self, buf: &mut [u8]) -> usize {
         BigEndian::write_u16(&mut buf[..2], self.id);
         BigEndian::write_u16(&mut buf[2..4], u16::from(&self.flags));
         BigEndian::write_u16(&mut buf[4..6], self.qdcount);

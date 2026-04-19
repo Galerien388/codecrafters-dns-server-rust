@@ -1,15 +1,13 @@
+use std::env;
 #[allow(unused_imports, dead_code, unused)]
 use std::net::UdpSocket;
-use std::{env, ops::Deref};
 
-use bytes::buf;
-
-use crate::dns::{Answer, Message, Question};
+use crate::{answer::Answer, header::HEADER_LEN, message::Message};
 
 pub mod answer;
-pub mod dns;
 pub mod field;
 pub mod header;
+pub mod message;
 pub mod question;
 
 const FLAG_SIZE: usize = 12;
@@ -25,19 +23,18 @@ fn main() {
             Ok((size, source)) => {
                 println!("Received {} bytes from {}", size, source);
 
-                let mut msg = Message::from_header_bytes(&mut buf[..FLAG_SIZE]);
+                let (mut req_msg, req_len) = Message::header_from_slice(&buf[..HEADER_LEN]);
+                req_msg.questions_from_slice(&buf[req_len..size]);
 
-                let _len = msg.read_questions(&mut buf[FLAG_SIZE..]);
-
-                let (resp_msg, _size) = match resolver_addr {
-                    Some(ref resolver) => query_msg(msg, resolver.as_str(), &udp_socket),
+                let (mut resp_msg, _size) = match resolver_addr {
+                    Some(ref resolver) => query_msg(req_msg, resolver.as_str(), &udp_socket),
                     None => {
-                        let mut m = Message::new(msg.header.id);
-                        for q in msg.questions {
+                        let mut m = Message::new(req_msg.header.id);
+                        for q in req_msg.questions {
                             m.answers.push(Answer::new(
-                                q.name.clone(),
-                                q.q_type,
-                                q.q_class,
+                                q.field.name.clone(),
+                                q.field.f_type,
+                                q.field.f_class,
                                 60,
                                 4,
                                 "8.8.8.8".to_string(),
@@ -50,20 +47,9 @@ fn main() {
 
                 let mut response = [0; 512];
 
-                let mut len = resp_msg.write_questions(&mut response[..FLAG_SIZE]);
-                len += resp_msg.write_answers(&mut response[len..]);
-
-                //
-                //
-                //
-                //
-                //
-                //
-                //
-                // msg.write_header(&mut response);
-                // let mut len = FLAG_SIZE;
-                // len += msg.write_questions(&mut response[len..]);
-                // len += msg.write_answers(&mut response[len..]);
+                resp_msg.header.flags.set_resp();
+                let mut len = resp_msg.header_into_slice(&mut response[..FLAG_SIZE]);
+                len += resp_msg.questions_into_slice(&mut response[len..size]);
 
                 udp_socket
                     .send_to(&response[..len], source)
@@ -97,10 +83,9 @@ fn query_msg(message: Message, resolver_addr: &str, udp_socket: &UdpSocket) -> (
             .recv_from(&mut resp_buf)
             .expect("Failed to receive from resolver");
 
-        let mut msg_received = Message::from_header_bytes(&resp_buf[..FLAG_SIZE]);
-        let mut len = FLAG_SIZE;
-        len += msg_received.read_questions(&resp_buf[len..size]);
-        msg_received.read_answers(&resp_buf[len..size]);
+        let (mut msg_received, mut len) = Message::header_from_slice(&resp_buf[..HEADER_LEN]);
+        len += msg_received.questions_from_slice(&resp_buf[len..size]);
+        msg_received.answers_from_slice(&resp_buf[len..size]);
 
         for q in msg_received.questions {
             msg_response.questions.push(q);
@@ -117,7 +102,7 @@ fn query_msg(message: Message, resolver_addr: &str, udp_socket: &UdpSocket) -> (
 }
 
 fn write_questions(message: Message, buf: &mut [u8]) -> usize {
-    message.write_header(&mut buf[..FLAG_SIZE]);
-    let len = message.write_questions(&mut buf[FLAG_SIZE..]);
-    len + FLAG_SIZE
+    let mut start = message.header_into_slice(&mut buf[..HEADER_LEN]);
+    start += message.questions_into_slice(&mut buf[start..]);
+    start
 }
