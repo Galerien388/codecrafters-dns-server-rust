@@ -32,6 +32,7 @@ fn main() {
                     msg.header.flags.set_resp();
                     let mut len = msg.header_into_slice(&mut response[..FLAG_SIZE]);
                     len += msg.questions_into_slice(&mut response[len..]);
+                    msg.answers_into_slice(&mut response[len..]);
 
                     udp_socket
                         .send_to(&response[..len], source)
