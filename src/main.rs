@@ -27,7 +27,7 @@ fn main() {
                 req_msg.questions_from_slice(&buf[req_len..size]);
 
                 if let Some(ref addr) = resolver_addr {
-                    let (mut msg, size) = query_msg(req_msg, addr.as_str());
+                    let (mut msg, _size) = query_msg(req_msg, addr.as_str());
                     let mut response = [0; 512];
                     msg.header.flags.set_resp();
                     let mut len = msg.header_into_slice(&mut response[..FLAG_SIZE]);
@@ -95,6 +95,5 @@ fn query_msg(message: Message, resolver_addr: &str) -> (Message, usize) {
 fn write_questions(message: Message, buf: &mut [u8]) -> usize {
     let mut start = message.header_into_slice(&mut buf[..HEADER_LEN]);
     start += message.questions_into_slice(&mut buf[start..]);
-    start += message.answers_into_slice(&mut buf[start..]);
     start
 }
