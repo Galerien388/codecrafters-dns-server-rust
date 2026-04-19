@@ -64,11 +64,13 @@ impl Message {
     }
 
     pub fn add_question(&mut self, question: Question) {
+        println!("push question: {:?}", question);
         self.questions.push(question);
         self.header.qdcount = self.questions.len() as u16;
     }
 
     pub fn add_answer(&mut self, answer: Answer) {
+        println!("push answer: {:?}", answer);
         self.answers.push(answer);
         self.header.ancount = self.answers.len() as u16;
     }
