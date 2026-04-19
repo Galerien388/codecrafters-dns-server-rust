@@ -26,38 +26,20 @@ fn main() {
                 let (mut req_msg, req_len) = Message::header_from_slice(&buf[..HEADER_LEN]);
                 req_msg.questions_from_slice(&buf[req_len..size]);
 
-                let (mut resp_msg, _size) = match resolver_addr {
-                    Some(ref resolver) => {
-                        println!("resolver is set");
-                        query_msg(req_msg, resolver.as_str())
-                    }
-                    None => {
-                        println!("resolver is not set");
-                        let mut m = Message::new(req_msg.header.id);
-                        for q in req_msg.questions {
-                            m.answers.push(Answer::new(
-                                q.field.name.clone(),
-                                q.field.f_type,
-                                q.field.f_class,
-                                60,
-                                4,
-                                q.field.name.clone(),
-                            ));
-                            m.questions.push(q);
-                        }
-                        (m, 0)
-                    }
-                };
+                if let Some(ref addr) = resolver_addr {
+                    let (mut msg, size) = query_msg(req_msg, addr.as_str());
+                    let mut response = [0; 512];
+                    msg.header.flags.set_resp();
+                    let mut len = msg.header_into_slice(&mut response[..FLAG_SIZE]);
+                    len += msg.questions_into_slice(&mut response[len..size]);
 
-                let mut response = [0; 512];
-
-                resp_msg.header.flags.set_resp();
-                let mut len = resp_msg.header_into_slice(&mut response[..FLAG_SIZE]);
-                len += resp_msg.questions_into_slice(&mut response[len..size]);
-
-                udp_socket
-                    .send_to(&response[..len], source)
-                    .expect("Failed to send response");
+                    udp_socket
+                        .send_to(&response[..len], source)
+                        .expect("Failed to send response");
+                } else {
+                    println!("should not happen");
+                    continue;
+                }
             }
             Err(e) => {
                 eprintln!("Error receiving data: {}", e);
