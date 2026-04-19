@@ -61,14 +61,14 @@ fn query_msg(message: Message, resolver_addr: &str) -> (Message, usize) {
         let mut req = [0; 512];
         let len = write_questions(msg, &mut req);
 
-        let udp_socket = UdpSocket::bind("127.0.0.1:2055").expect("Failed to bind to address");
-        udp_socket
+        let resolver_socket = UdpSocket::bind("0.0.0.0:0").expect("Failed to bind to address");
+        resolver_socket
             .send_to(&req[..len], resolver_addr)
             .expect("Failed to send req to resolver");
 
         let mut resp_buf = [0; 512];
 
-        let (size, _addr) = udp_socket
+        let (size, _addr) = resolver_socket
             .recv_from(&mut resp_buf)
             .expect("Failed to receive from resolver");
 
