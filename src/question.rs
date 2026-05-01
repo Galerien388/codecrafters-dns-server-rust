@@ -16,9 +16,9 @@ impl Question {
         self.field.into_slice(buf)
     }
 
-    pub fn from_slice(buf: &[u8]) -> (Question, usize) {
-        let (field, len) = Field::from_slice(buf);
+    pub fn read(buf: &[u8], pos: usize) -> (Question, usize) {
+        let (field, pos) = Field::from_slice(buf, pos);
         let question = Question { field };
-        (question, len)
+        (question, pos)
     }
 }

@@ -94,7 +94,7 @@ impl DnsHeader {
         }
     }
 
-    pub fn into_bytes(&self, buf: &mut [u8]) -> usize {
+    pub fn into_buffer(&self, buf: &mut [u8]) -> usize {
         BigEndian::write_u16(&mut buf[..2], self.id);
         BigEndian::write_u16(&mut buf[2..4], u16::from(&self.flags));
         BigEndian::write_u16(&mut buf[4..6], self.qdcount);
@@ -104,7 +104,7 @@ impl DnsHeader {
         HEADER_LEN
     }
 
-    pub fn from_bytes(buf: &[u8]) -> Self {
+    pub fn from_buffer(buf: &[u8]) -> Self {
         let flags_as_u16 = u16::from_be_bytes([buf[2], buf[3]]);
         let flags = flags_as_u16.into();
 

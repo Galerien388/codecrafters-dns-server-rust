@@ -16,7 +16,7 @@ impl Field {
         }
     }
 
-    pub fn from_slice(buf: &[u8]) -> (Self, usize) {
+    pub fn from_slice(buf: &[u8], pos: usize) -> (Self, usize) {
         let mut start = 0;
         let mut names = Vec::new();
 

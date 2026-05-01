@@ -28,8 +28,8 @@ impl Message {
         self.header.flags.set_resp();
     }
 
-    pub fn header_from_slice(buf: &[u8]) -> (Self, usize) {
-        let mut header = DnsHeader::from_bytes(buf);
+    pub fn from_packet(buf: &[u8]) -> (Self, usize) {
+        let mut header = DnsHeader::from_buffer(buf);
         header.flags.rcode = if header.flags.opcode == 0 { 0 } else { 4 };
         (
             Self {
@@ -41,15 +41,13 @@ impl Message {
         )
     }
 
-    pub fn questions_from_slice(&mut self, buf: &[u8]) -> usize {
-        let mut start = 0;
+    pub fn read_questions_from_packet(&mut self, buf: &[u8], pos: usize) -> usize {
         for _ in 0..self.header.qdcount {
-            let (question, len) = Question::from_slice(&buf[start..]);
+            let (question, pos) = Question::read(&buf, pos);
             println!("Question read: {:?}", question);
-            start += len;
             self.add_question(question);
         }
-        start
+        pos
     }
 
     pub fn answers_from_slice(&mut self, buf: &[u8]) -> usize {
@@ -75,8 +73,8 @@ impl Message {
         self.header.ancount = self.answers.len() as u16;
     }
 
-    pub fn header_into_slice(&self, buf: &mut [u8]) -> usize {
-        self.header.into_bytes(buf);
+    pub fn header_from_packet(&self, buf: &mut [u8]) -> usize {
+        self.header.into_buffer(buf);
         HEADER_LEN
     }
 

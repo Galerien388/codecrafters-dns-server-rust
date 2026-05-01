@@ -23,14 +23,14 @@ fn main() {
             Ok((size, source)) => {
                 println!("Received {} bytes from {}", size, source);
 
-                let (mut req_msg, req_len) = Message::header_from_slice(&buf[..HEADER_LEN]);
-                req_msg.questions_from_slice(&buf[req_len..size]);
+                let (mut req_msg, pos) = Message::from_packet(&buf[..HEADER_LEN]);
+                req_msg.read_questions_from_packet(&buf[..size], pos);
 
                 if let Some(ref addr) = resolver_addr {
                     let (mut msg, _size) = query_msg(req_msg, addr.as_str());
                     let mut response = [0; 512];
                     msg.header.flags.set_resp();
-                    let mut len = msg.header_into_slice(&mut response[..FLAG_SIZE]);
+                    let mut len = msg.header_from_packet(&mut response[..FLAG_SIZE]);
                     len += msg.questions_into_slice(&mut response[len..]);
                     len += msg.answers_into_slice(&mut response[len..]);
 
@@ -74,8 +74,8 @@ fn query_msg(message: Message, resolver_addr: &str) -> (Message, usize) {
             .recv_from(&mut resp_buf)
             .expect("Failed to receive from resolver");
 
-        let (mut msg_received, mut len) = Message::header_from_slice(&resp_buf[..HEADER_LEN]);
-        len += msg_received.questions_from_slice(&resp_buf[len..size]);
+        let (mut msg_received, mut len) = Message::from_packet(&resp_buf[..HEADER_LEN]);
+        len += msg_received.read_questions_from_packet(&resp_buf[len..size]);
         msg_received.answers_from_slice(&resp_buf[len..size]);
 
         for q in msg_received.questions {
